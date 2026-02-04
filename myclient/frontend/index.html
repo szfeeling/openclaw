@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Project Client</title>
+  </head>
+  <body>
+    <div id="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-title">OpenClaw</div>
+          <div class="brand-sub">Project Sessions</div>
+        </div>
+        <form id="project-form" class="project-form">
+          <input id="project-name" type="text" placeholder="New project" autocomplete="off" />
+          <button type="submit">Add</button>
+        </form>
+        <div class="project-list" id="project-list"></div>
+        <div class="sidebar-footer">
+          <div class="status" id="health-status">Connecting...</div>
+        </div>
+      </aside>
+      <main class="chat">
+        <header class="chat-header">
+          <div>
+            <div class="chat-title" id="chat-title">Select a project</div>
+            <div class="chat-meta" id="chat-meta">Session: -</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="stream-toggle" checked />
+            <span>Stream</span>
+          </label>
+        </header>
+        <section class="avatars">
+          <div class="avatars-title">Digital Humans</div>
+          <div class="avatars-list" id="avatars"></div>
+        </section>
+        <section class="messages" id="messages"></section>
+        <footer class="composer">
+          <textarea id="message-input" rows="3" placeholder="Describe the task for this project..."></textarea>
+          <button id="send-btn" class="send">Send</button>
+        </footer>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
