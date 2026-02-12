@@ -36,14 +36,14 @@
 
 ## 2) 后端配置与启动（FastAPI）
 
-1) 准备环境变量：
+1. 准备环境变量：
 
 ```bash
 cd myclient/backend
 cp .env.example .env
 ```
 
-2) 根据实际情况填写 `.env`（示例字段）：
+2. 根据实际情况填写 `.env`（示例字段）：
 
 - `OPENCLAW_BASE_URL`（默认 `http://127.0.0.1:18789`）
 - `OPENCLAW_TOKEN`（Gateway auth token）
@@ -54,7 +54,9 @@ cp .env.example .env
 - `WHISPER_HTTP_URL`（可选，OpenAI 兼容 Whisper 端点）
 - `WHISPER_CMD`（可选，本地 whisper CLI）
 
-3) 启动后端：
+后端启动时会自动加载 `myclient/backend/.env`（若 shell 中已设置同名环境变量，则以 shell 为准）。
+
+3. 启动后端：
 
 ```bash
 python -m venv .venv
@@ -69,7 +71,7 @@ uvicorn app:app --reload --port 8000
 
 建议后端部署在 Linux 服务器上，并通过反向代理提供 HTTPS/WSS。
 
-1) 上传代码并准备虚拟环境：
+1. 上传代码并准备虚拟环境：
 
 ```bash
 cd /opt/openclaw/myclient/backend
@@ -79,12 +81,12 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-2) 配置 `.env`（与本地一致），并确认以下要点：
+2. 配置 `.env`（与本地一致），并确认以下要点：
 
 - `OPENCLAW_BASE_URL` 指向 Gateway 地址（例如 `http://127.0.0.1:18789` 或内网地址）。
 - 若对外提供 HTTPS，前端/客户端需使用 `https://` 与 `wss://`。
 
-3) 使用 systemd 启动（示例）：
+3. 使用 systemd 启动（示例）：
 
 ```ini
 [Unit]
@@ -127,8 +129,10 @@ server {
 ```bash
 cd myclient/frontend
 npm install
-# 可选：后端不在同一 host/port 时设置
+# 可选：后端不在同一 host/port 时设置（优先级最高）
 # export VITE_API_BASE=http://127.0.0.1:8000
+# 或者修改运行时配置文件（无需重新构建）
+# myclient/frontend/public/app-config.json -> {"apiBase":"http://127.0.0.1:8000"}
 npm run dev
 ```
 
@@ -136,7 +140,7 @@ npm run dev
 
 ## 3.1) 远程部署（前端静态托管）
 
-1) 生产构建：
+1. 生产构建：
 
 ```bash
 cd myclient/frontend
@@ -145,8 +149,10 @@ npm install
 npm run build
 ```
 
-2) 将 `dist/` 部署到任意静态托管（Nginx/S3/CDN）。  
-3) iOS/移动端请使用 `https://` 与 `wss://` 指向后端。
+如果不想通过环境变量固化地址，也可在部署时直接修改 `dist/app-config.json`（或构建前修改 `public/app-config.json`）。
+
+2. 将 `dist/` 部署到任意静态托管（Nginx/S3/CDN）。
+3. iOS/移动端请使用 `https://` 与 `wss://` 指向后端。
 
 ## 3.2) Docker 部署（可选）
 
@@ -213,29 +219,30 @@ services:
 docker compose -f myclient/docker-compose.yaml up --build
 ```
 
-> 注意：如果 OpenClaw Gateway 不在容器内，需要确保容器能访问到 Gateway 地址。  
-> - macOS/Windows 可用 `http://host.docker.internal:18789`  
-> - Linux 建议使用 host 网络或配置网关地址可达。  
+> 注意：如果 OpenClaw Gateway 不在容器内，需要确保容器能访问到 Gateway 地址。
+>
+> - macOS/Windows 可用 `http://host.docker.internal:18789`
+> - Linux 建议使用 host 网络或配置网关地址可达。
 
 ## 4) iOS MVP 测试流程
 
-1) 在 Web 前端创建项目，并选择一个数字人（可选）。
-2) 获取 `projectId`：
+1. 在 Web 前端创建项目，并选择一个数字人（可选）。
+2. 获取 `projectId`：
    - 打开浏览器控制台调用 `GET /api/projects`，或
    - 直接访问 `http://127.0.0.1:8000/api/projects` 查看 JSON。
-3) 在 Xcode 新建 SwiftUI App，并将以下文件加入 target：
+3. 在 Xcode 新建 SwiftUI App，并将以下文件加入 target：
    - `myclient/ios/AudioRecorder.swift`
    - `myclient/ios/AudioPlayback.swift`
    - `myclient/ios/AudioStreamClient.swift`
    - `myclient/ios/UnityBridge.swift`
    - `myclient/ios/ContentView.swift`
-4) 在 **Info.plist** 中添加麦克风权限：
+4. 在 **Info.plist** 中添加麦克风权限：
    - `Privacy - Microphone Usage Description`
-5) 运行 App：
+5. 运行 App：
    - `WebSocket URL` 填 `ws://<backend-host>:8000/ws/audio`（远程建议 `wss://api.example.com/ws/audio`）
    - `Project ID` 填上一步获取的 `projectId`
    - `Avatar ID` 可选（从 `/api/avatars` 获取）
-6) 点击 **Connect**，再点击 **Record**，录音后 **Stop**。
+6. 点击 **Connect**，再点击 **Record**，录音后 **Stop**。
    - 期望看到 `Transcript`/`Assistant` 文本更新。
    - 若配置了 ElevenLabs，播放将有 TTS 音频。
 
@@ -244,7 +251,14 @@ docker compose -f myclient/docker-compose.yaml up --build
 Client → Server（JSON）：
 
 ```json
-{ "type": "audio.start", "projectId": "<id>", "avatarId": "<id>", "format": "pcm16", "sampleRate": 16000, "channels": 1 }
+{
+  "type": "audio.start",
+  "projectId": "<id>",
+  "avatarId": "<id>",
+  "format": "pcm16",
+  "sampleRate": 16000,
+  "channels": 1
+}
 ```
 
 之后发送二进制 PCM16 小端音频帧。结束时发送：

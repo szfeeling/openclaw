@@ -3,15 +3,5 @@
     "id": "aurora",
     "name": "Aurora",
     "voiceId": "replace-with-elevenlabs-voice-id"
-  },
-  {
-    "id": "atlas",
-    "name": "Atlas",
-    "voiceId": "replace-with-elevenlabs-voice-id"
-  },
-  {
-    "id": "nova",
-    "name": "Nova",
-    "voiceId": "replace-with-elevenlabs-voice-id"
   }
 ]

@@ -17,6 +17,33 @@ from pydantic import BaseModel, Field
 
 from streaming import StreamingDeps, attach_audio_ws
 
+def load_local_env_file(path: Path) -> None:
+    if not path.exists():
+        return
+
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        if "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        os.environ.setdefault(key, value)
+
+
+# Auto-load backend/.env while allowing shell/env vars to override defaults.
+load_local_env_file(Path(__file__).with_name(".env"))
+
 OPENCLAW_BASE_URL = os.getenv("OPENCLAW_BASE_URL", "http://127.0.0.1:18789").rstrip("/")
 OPENCLAW_TOKEN = os.getenv("OPENCLAW_TOKEN", "").strip()
 OPENCLAW_AGENT_ID = os.getenv("OPENCLAW_AGENT_ID", "main").strip() or "main"
@@ -367,17 +394,33 @@ async def stream_openclaw_events(
     headers: Dict[str, str],
     payload: dict,
 ) -> Iterable[str]:
+    async def emit_error(message: str, status_code: int | None = None) -> Iterable[str]:
+        error_payload: dict = {"type": "response.error", "error": message}
+        if status_code is not None:
+            error_payload["status"] = status_code
+        yield f"data: {json.dumps(error_payload, ensure_ascii=True)}\n\n"
+        yield "data: [DONE]\n\n"
+
     timeout = httpx.Timeout(OPENCLAW_TIMEOUT_SECONDS, read=None)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        async with client.stream("POST", url, headers=headers, json=payload) as resp:
-            resp.raise_for_status()
-            async for line in resp.aiter_lines():
-                if not line:
-                    continue
-                if line.startswith("data:"):
-                    yield f"{line}\n\n"
-                else:
-                    yield f"data: {line}\n\n"
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            async with client.stream("POST", url, headers=headers, json=payload) as resp:
+                if resp.status_code >= 400:
+                    raw = (await resp.aread()).decode("utf-8", errors="replace").strip()
+                    message = raw or f"OpenClaw stream request failed with status {resp.status_code}"
+                    async for chunk in emit_error(message, resp.status_code):
+                        yield chunk
+                    return
+                async for line in resp.aiter_lines():
+                    if not line:
+                        continue
+                    if line.startswith("data:"):
+                        yield f"{line}\n\n"
+                    else:
+                        yield f"data: {line}\n\n"
+    except httpx.HTTPError as exc:
+        async for chunk in emit_error(f"OpenClaw stream request failed: {exc}"):
+            yield chunk
 
 
 @app.post("/api/chat/stream")

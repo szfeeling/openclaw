@@ -10,7 +10,7 @@ Small demo app that maps each project to its own OpenClaw session key.
 
 ## Prereqs
 
-1) Enable OpenClaw OpenResponses HTTP endpoint:
+1. Enable OpenClaw OpenResponses HTTP endpoint:
 
 ```json5
 {
@@ -24,7 +24,7 @@ Small demo app that maps each project to its own OpenClaw session key.
 }
 ```
 
-2) Ensure the Gateway auth token is available.
+2. Ensure the Gateway auth token is available.
 
 ## Backend (Python)
 
@@ -51,6 +51,7 @@ pip install -r requirements.txt
 # Configure env
 cp .env.example .env
 # Edit .env to point at your OpenClaw Gateway + token
+# backend auto-loads .env on startup (shell env vars still take precedence)
 
 uvicorn app:app --reload --port 8000
 ```
@@ -61,8 +62,10 @@ uvicorn app:app --reload --port 8000
 cd myclient/frontend
 npm install
 
-# Optional: API base override
+# Optional: API base override (highest priority)
 # export VITE_API_BASE=http://localhost:8000
+# Optional: runtime config without rebuild
+# edit myclient/frontend/public/app-config.json -> {"apiBase":"http://localhost:8000"}
 
 npm run dev
 ```
@@ -83,7 +86,14 @@ Endpoint: `ws://localhost:8000/ws/audio`
 Client → Server (JSON frames):
 
 ```json
-{ "type": "audio.start", "projectId": "<id>", "avatarId": "<id>", "format": "pcm16", "sampleRate": 16000, "channels": 1 }
+{
+  "type": "audio.start",
+  "projectId": "<id>",
+  "avatarId": "<id>",
+  "format": "pcm16",
+  "sampleRate": 16000,
+  "channels": 1
+}
 ```
 
 Then send binary PCM chunks. When done:
